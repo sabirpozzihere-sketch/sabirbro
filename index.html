@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Inclined Plane Physics Demo</title>
+
+<style>
+    :root {
+        --bg: #0f172a;
+        --panel: #172033;
+        --panel2: #1e293b;
+        --text: #f8fafc;
+        --muted: #94a3b8;
+        --blue: #38bdf8;
+        --green: #4ade80;
+        --orange: #fb923c;
+        --red: #f87171;
+        --yellow: #facc15;
+        --border: #334155;
+    }
+
+    * {
+        box-sizing: border-box;
+    }
+
+    body {
+        margin: 0;
+        font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--text);
+    }
+
+    .app {
+        max-width: 1150px;
+        margin: auto;
+        padding: 24px;
+    }
+
+    h1 {
+        margin: 0 0 8px;
+        font-size: clamp(28px, 5vw, 44px);
+    }
+
+    h2 {
+        margin-top: 0;
+    }
+
+    .subtitle {
+        color: var(--muted);
+        max-width: 800px;
+        line-height: 1.6;
+        margin-bottom: 24px;
+    }
+
+    .layout {
+        display: grid;
+        grid-template-columns: minmax(0, 1.6fr) minmax(300px, 0.9fr);
+        gap: 18px;
+    }
+
+    .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        padding: 18px;
+    }
+
+    .simulation {
+        min-height: 560px;
+    }
+
+    canvas {
+        display: block;
+        width: 100%;
+        height: 500px;
+        background:
+            radial-gradient(circle at 50% 20%, #1e293b 0%, #111827 70%);
+        border-radius: 12px;
+    }
+
+    .controls {
+        display: grid;
+        gap: 17px;
+    }
+
+    .control {
+        display: grid;
+        gap: 7px;
+    }
+
+    .control-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+    }
+
+    label {
+        font-weight: 600;
+    }
+
+    output {
+        color: var(--blue);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    input[type="range"] {
+        width: 100%;
+        accent-color: var(--blue);
+        cursor: pointer;
+    }
+
+    input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--blue);
+    }
+
+    .checkbox-row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 10px;
+        background: var(--panel2);
+        border-radius: 10px;
+    }
+
+    button {
+        min-height: 44px;
+        border: 0;
+        border-radius: 10px;
+        padding: 10px 16px;
+        font-size: 15px;
+        font-weight: 700;
+        cursor: pointer;
+        background: var(--blue);
+        color: #082f49;
+    }
+
+    button.secondary {
+        background: #334155;
+        color: white;
+    }
+
+    .button-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+
+    .results {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        margin-top: 18px;
+    }
+
+    .metric {
+        background: var(--panel2);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 14px;
+    }
+
+    .metric .label {
+        color: var(--muted);
+        font-size: 13px;
+        margin-bottom: 5px;
+    }
+
+    .metric .value {
+        font-size: 25px;
+        font-weight: 800;
+    }
+
+    .metric.highlight {
+        border-color: var(--green);
+    }
+
+    .metric.highlight .value {
+        color: var(--green);
+    }
+
+    .explanation {
+        margin-top: 18px;
+        padding: 16px;
+        border-radius: 12px;
+        background: #0b1220;
+        border: 1px solid var(--border);
+        line-height: 1.65;
+    }
+
+    .formula {
+        font-family: "Courier New", monospace;
+        color: var(--yellow);
+        overflow-wrap: anywhere;
+    }
+
+    .comparison {
+        margin-top: 18px;
+    }
+
+    .bar-row {
+        margin: 14px 0;
+    }
+
+    .bar-label {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 6px;
+        font-size: 14px;
+    }
+
+    .bar-track {
+        height: 25px;
+        background: #0f172a;
+        border-radius: 6px;
+        overflow: hidden;
+    }
+
+    .bar {
+        height: 100%;
+        width: 0%;
+        transition: width 0.2s ease;
+    }
+
+    .bar.lift {
+        background: var(--orange);
+    }
+
+    .bar.ramp {
+        background: var(--green);
+    }
+
+    .status {
+        margin-top: 12px;
+        padding: 10px;
+        border-radius: 9px;
+        background: #0b1220;
+        color: var(--muted);
+        font-size: 13px;
+        line-height: 1.5;
+    }
+
+    @media (max-width: 850px) {
+        .layout {
+            grid-template-columns: 1fr;
+        }
+
+        canvas {
+            height: 420px;
+        }
+    }
+
+    @media (max-width: 500px) {
+        .app {
+            padding: 14px;
+        }
+
+        canvas {
+            height: 350px;
+        }
+
+        .results {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            scroll-behavior: auto !important;
+            transition: none !important;
+        }
+    }
+</style>
+</head>
+
+<body>
+
+<main class="app">
+
+    <h1>Inclined Plane Physics</h1>
+
+    <p class="subtitle">
+        Explore how an inclined plane changes the force needed to move an object upward.
+        The simulation uses Newton's laws in real time. Compare pulling the object vertically
+        with pulling it up a ramp to the same height.
+    </p>
+
+    <div class="layout">
+
+        <section class="panel simulation">
+            <h2>Interactive simulation</h2>
+            <canvas id="simulationCanvas" aria-label="Animated inclined plane simulation"></canvas>
+
+            <div class="button-row" style="margin-top: 14px;">
+                <button id="startButton" type="button">Start motion</button>
+                <button id="resetButton" type="button" class="secondary">Reset</button>
+            </div>
+
+            <div id="status" class="status" aria-live="polite">
+                Ready. The pulling force is calculated for constant-speed motion.
+            </div>
+        </section>
+
+        <aside class="panel">
+
+            <h2>Physics controls</h2>
+
+            <div class="controls">
+
+                <div class="control">
+                    <div class="control-header">
+                        <label for="mass">Mass</label>
+                        <output id="massValue">10 kg</output>
+                    </div>
+                    <input id="mass" type="range" min="1" max="50" value="10" step="0.5">
+                </div>
+
+                <div class="control">
+                    <div class="control-header">
+                        <label for="angle">Ramp angle</label>
+                        <output id="angleValue">30°</output>
+                    </div>
+                    <input id="angle" type="range" min="5" max="60" value="30" step="1">
+                </div>
+
+                <div class="control">
+                    <div class="control-header">
+                        <label for="friction">Coefficient of friction μ</label>
+                        <output id="frictionValue">0.15</output>
+                    </div>
+                    <input id="friction" type="range" min="0" max="0.80" value="0.15" step="0.01">
+                </div>
+
+                <div class="control">
+                    <div class="control-header">
+                        <label for="height">Vertical height</label>
+                        <output id="heightValue">2.0 m</output>
+                    </div>
+                    <input id="height" type="range" min="0.5" max="5" value="2" step="0.1">
+                </div>
+
+                <div class="control">
+                    <div class="control-header">
+                        <label for="speed">Pulling speed</label>
+                        <output id="speedValue">0.8 m/s</output>
+                    </div>
+                    <input id="speed" type="range" min="0.1" max="2" value="0.8" step="0.1">
+                </div>
+
+                <div class="checkbox-row">
+                    <input id="showForces" type="checkbox" checked>
+                    <label for="showForces">Show force vectors</label>
+                </div>
+
+            </div>
+
+            <div class="results">
+
+                <div class="metric">
+                    <div class="label">Weight mg</div>
+                    <div class="value" id="weight">98.1 N</div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">Normal force</div>
+                    <div class="value" id="normal">85.0 N</div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">Gravity down slope</div>
+                    <div class="value" id="gravitySlope">49.1 N</div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">Friction</div>
+                    <div class="value" id="frictionForce">12.8 N</div>
+                </div>
+
+                <div class="metric highlight">
+                    <div class="label">Ramp pulling force</div>
+                    <div class="value" id="pullForce">61.9 N</div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">Vertical lifting force</div>
+                    <div class="value" id="liftForce">98.1 N</div>
+                </div>
+
+                <div class="metric highlight">
+                    <div class="label">Force reduction</div>
+                    <div class="value" id="reduction">36.9%</div>
+                </div>
+
+                <div class="metric">
+                    <div class="label">Mechanical advantage</div>
+                    <div class="value" id="mechanicalAdvantage">1.58×</div>
+                </div>
+
+            </div>
+
+            <div class="comparison">
+
+                <h3>Required force comparison</h3>
+
+                <div class="bar-row">
+                    <div class="bar-label">
+                        <span>Lift vertically</span>
+                        <strong id="liftBarText">98.1 N</strong>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar lift" id="liftBar"></div>
+                    </div>
+                </div>
+
+                <div class="bar-row">
+                    <div class="bar-label">
+                        <span>Pull along ramp</span>
+                        <strong id="rampBarText">61.9 N</strong>
+                    </div>
+                    <div class="bar-track">
+                        <div class="bar ramp" id="rampBar"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <div class="explanation">
+                <strong>Physics</strong>
+
+                <p>
+                    The object's weight is
+                    <span class="formula">mg</span>.
+                    On the ramp, only part of gravity acts down the slope:
+                </p>
+
+                <p class="formula">
+                    Fgravity = mg sin(θ)
+                </p>
+
+                <p>
+                    The ramp also produces a normal force:
+                </p>
+
+                <p class="formula">
+                    N = mg cos(θ)
+                </p>
+
+                <p>
+                    With friction coefficient μ, friction opposing the motion is:
+                </p>
+
+                <p class="formula">
+                    Ffriction = μmg cos(θ)
+                </p>
+
+                <p>
+                    Therefore, pulling at constant speed requires:
+                </p>
+
+                <p class="formula">
+                    Fpull = mg(sin(θ) + μcos(θ))
+                </p>
+
+                <p>
+                    For comparison, lifting vertically at constant speed requires:
+                </p>
+
+                <p class="formula">
+                    Flift = mg
+                </p>
+            </div>
+
+        </aside>
+
+    </div>
+</main>
+
+<script>
+"use strict";
+
+/*
+    INCLINED PLANE PHYSICS SIMULATION
+
+    All physics calculations are performed here in JavaScript.
+
+    Assumptions:
+      - Earth gravity: 9.80665 m/s²
+      - The object moves up the plane.
+      - Pulling force is parallel to the plane.
+      - Kinetic friction coefficient μ is used.
+      - The displayed pulling force is the force required for
+        constant-speed motion.
+      - Air resistance is ignored.
+*/
+
+(() => {
+
+    const G = 9.80665;
+
+    const canvas = document.getElementById("simulationCanvas");
+    const ctx = canvas.getContext("2d");
+
+    const massInput = document.getElementById("mass");
+    const angleInput = document.getElementById("angle");
+    const frictionInput = document.getElementById("friction");
+    const heightInput = document.getElementById("height");
+    const speedInput = document.getElementById("speed");
+    const showForcesInput = document.getElementById("showForces");
+
+    const massValue = document.getElementById("massValue");
+    const angleValue = document.getElementById("angleValue");
+    const frictionValue = document.getElementById("frictionValue");
+    const heightValue = document.getElementById("heightValue");
+    const speedValue = document.getElementById("speedValue");
+
+    const weightEl = document.getElementById("weight");
+    const normalEl = document.getElementById("normal");
+    const gravitySlopeEl = document.getElementById("gravitySlope");
+    const frictionForceEl = document.getElementById("frictionForce");
+    const pullForceEl = document.getElementById("pullForce");
+    const liftForceEl = document.getElementById("liftForce");
+    const reductionEl = document.getElementById("reduction");
+    const mechanicalAdvantageEl = document.getElementById("mechanicalAdvantage");
+
+    const liftBar = document.getElementById("liftBar");
+    const rampBar = document.getElementById("rampBar");
+    const liftBarText = document.getElementById("liftBarText");
+    const rampBarText = document.getElementById("rampBarText");
+
+    const startButton = document.getElementById("startButton");
+    const resetButton = document.getElementById("resetButton");
+    const statusEl = document.getElementById("status");
+
+    let running = false;
+    let animationId = null;
+    let lastTime = 0;
+
+    // Position along the ramp, expressed as distance travelled.
+    let distanceAlongRamp = 0;
+
+    function getPhysics() {
+
+        const mass = Math.max(0.001, Number(massInput.value));
+        const angleDeg = Number(angleInput.value);
+        const angle = angleDeg * Math.PI / 180;
+        const mu = Math.max(0, Number(frictionInput.value));
+        const height = Math.max(0.01, Number(heightInput.value));
+        const speed = Math.max(0.01, Number(speedInput.value));
+
+        const weight = mass * G;
+
+        // Resolve weight into components parallel/perpendicular
+        // to the inclined plane.
+        const gravitySlope = weight * Math.sin(angle);
+        const normal = weight * Math.cos(angle);
+
+        // Kinetic friction.
+        const frictionForce = mu * normal;
+
+        // Constant-speed condition:
+        //
+        // Fpull - mg sin(theta) - friction = 0
+        //
+        // Therefore:
+        // Fpull = mg sin(theta) + friction
+        const pullForce = gravitySlope + frictionForce;
+
+        // Vertical lift at constant speed.
+        const liftForce = weight;
+
+        const reduction = 1 - (pullForce / liftForce);
+
+        // This is a force ratio, not a claim that energy is created.
+        const mechanicalAdvantage = liftForce / pullForce;
+
+        // Ramp length needed to reach the selected vertical height.
+        const rampLength = height / Math.sin(angle);
+
+        return {
+            mass,
+            angleDeg,
+            angle,
+            mu,
+            height,
+            speed,
+            weight,
+            gravitySlope,
+            normal,
+            frictionForce,
+            pullForce,
+            liftForce,
+            reduction,
+            mechanicalAdvantage,
+            rampLength
+        };
+    }
+
+    function updateReadouts() {
+
+        const p = getPhysics();
+
+        massValue.textContent = `${p.mass.toFixed(1)} kg`;
+        angleValue.textContent = `${p.angleDeg.toFixed(0)}°`;
+        frictionValue.textContent = p.mu.toFixed(2);
+        heightValue.textContent = `${p.height.toFixed(1)} m`;
+        speedValue.textContent = `${p.speed.toFixed(1)} m/s`;
+
+        weightEl.textContent = `${p.weight.toFixed(1)} N`;
+        normalEl.textContent = `${p.normal.toFixed(1)} N`;
+        gravitySlopeEl.textContent = `${p.gravitySlope.toFixed(1)} N`;
+        frictionForceEl.textContent = `${p.frictionForce.toFixed(1)} N`;
+        pullForceEl.textContent = `${p.pullForce.toFixed(1)} N`;
+        liftForceEl.textContent = `${p.liftForce.toFixed(1)} N`;
+
+        reductionEl.textContent = `${(p.reduction * 100).toFixed(1)}%`;
+
+        if (p.reduction >= 0) {
+            reductionEl.style.color = "var(--green)";
+        } else {
+            reductionEl.style.color = "var(--red)";
+        }
+
+        mechanicalAdvantageEl.textContent =
+            `${p.mechanicalAdvantage.toFixed(2)}×`;
+
+        liftBarText.textContent = `${p.liftForce.toFixed(1)} N`;
+        rampBarText.textContent = `${p.pullForce.toFixed(1)} N`;
+
+        // Make the vertical-lift force 100% of the reference bar.
+        // If friction makes the ramp force larger, the ramp can exceed 100%.
+        const maximum = Math.max(p.liftForce, p.pullForce);
+        liftBar.style.width = `${100 * p.liftForce / maximum}%`;
+        rampBar.style.width = `${100 * p.pullForce / maximum}%`;
+
+        draw();
+    }
+
+    function resizeCanvas() {
+
+        const rect = canvas.getBoundingClientRect();
+
+        const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+
+        canvas.width = Math.max(1, Math.round(rect.width * pixelRatio));
+        canvas.height = Math.max(1, Math.round(rect.height * pixelRatio));
+
+        ctx.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
+
+        draw();
+    }
+
+    function roundedRect(x, y, width, height, radius) {
+
+        const r = Math.min(radius, width / 2, height / 2);
+
+        ctx.beginPath();
+        ctx.moveTo(x + r, y);
+        ctx.arcTo(x + width, y, x + width, y + height, r);
+        ctx.arcTo(x + width, y + height, x, y + height, r);
+        ctx.arcTo(x, y + height, x, y, r);
+        ctx.arcTo(x, y, x + width, y, r);
+        ctx.closePath();
+    }
+
+    function drawArrow(x1, y1, x2, y2, color, label, scale = 1) {
+
+        const dx = x2 - x1;
+        const dy = y2 - y1;
+        const length = Math.sqrt(dx * dx + dy * dy);
+
+        if (length < 1) {
+            return;
+        }
+
+        const ux = dx / length;
+        const uy = dy / length;
+
+        const head = Math.min(13, Math.max(7, 10 * scale));
+
+        ctx.save();
+
+        ctx.strokeStyle = color;
+        ctx.fillStyle = color;
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.moveTo(x1, y1);
+        ctx.lineTo(x2, y2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(x2, y2);
+        ctx.lineTo(
+            x2 - ux * head - uy * head * 0.55,
+            y2 - uy * head + ux * head * 0.55
+        );
+        ctx.lineTo(
+            x2 - ux * head + uy * head * 0.55,
+            y2 - uy * head - ux * head * 0.55
+        );
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.font = "600 13px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+
+        const labelX = (x1 + x2) / 2 - uy * 16;
+        const labelY = (y1 + y2) / 2 + ux * 16;
+
+        // Text background for readability.
+        const width = ctx.measureText(label).width + 10;
+
+        ctx.fillStyle = "rgba(15,23,42,0.88)";
+        ctx.fillRect(
+            labelX - width / 2,
+            labelY - 10,
+            width,
+            20
+        );
+
+        ctx.fillStyle = color;
+        ctx.fillText(label, labelX, labelY);
+
+        ctx.restore();
+    }
+
+    function draw() {
+
+        const p = getPhysics();
+
+        const width = canvas.clientWidth;
+        const height = canvas.clientHeight;
+
+        if (width <= 0 || height <= 0) {
+            return;
+        }
+
+        ctx.clearRect(0, 0, width, height);
+
+        /*
+            Coordinate system:
+              x increases right
+              y increases downward
+        */
+
+        const angle = p.angle;
+
+        const baseX = width * 0.10;
+        const baseY = height * 0.78;
+
+        const maxRampWidth = width * 0.78;
+        const maxRampHeight = height * 0.56;
+
+        // Scale the physical ramp geometry into the canvas.
+        const physicalLength = p.rampLength;
+
+        let rampWidth = maxRampWidth;
+        let rampHeight = rampWidth * Math.tan(angle);
+
+        if (rampHeight > maxRampHeight) {
+            rampHeight = maxRampHeight;
+            rampWidth = rampHeight / Math.tan(angle);
+        }
+
+        const leftX = baseX;
+        const bottomY = baseY;
+        const rightX = leftX + rampWidth;
+        const topY = bottomY - rampHeight;
+
+        // Ground.
+        ctx.strokeStyle = "#475569";
+        ctx.lineWidth = 3;
+
+        ctx.beginPath();
+        ctx.moveTo(30, bottomY);
+        ctx.lineTo(width - 30, bottomY);
+        ctx.stroke();
+
+        // Ramp body.
+        ctx.fillStyle = "#334155";
+        ctx.beginPath();
+        ctx.moveTo(leftX, bottomY);
+        ctx.lineTo(rightX, topY);
+        ctx.lineTo(rightX, bottomY);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.strokeStyle = "#94a3b8";
+        ctx.lineWidth = 4;
+
+        ctx.beginPath();
+        ctx.moveTo(leftX, bottomY);
+        ctx.lineTo(rightX, topY);
+        ctx.stroke();
+
+        // Height indicator.
+        ctx.save();
+
+        ctx.strokeStyle = "#38bdf8";
+        ctx.lineWidth = 2;
+        ctx.setLineDash([6, 5]);
+
+        ctx.beginPath();
+        ctx.moveTo(rightX + 25, topY);
+        ctx.lineTo(rightX + 25, bottomY);
+        ctx.stroke();
+
+        ctx.restore();
+
+        ctx.fillStyle = "#38bdf8";
+        ctx.font = "600 13px system-ui";
+        ctx.textAlign = "left";
+        ctx.fillText(
+            `height = ${p.height.toFixed(1)} m`,
+            rightX + 32,
+            (topY + bottomY) / 2
+        );
+
+        // Ramp length label.
+        ctx.save();
+        ctx.translate(
+            (leftX + rightX) / 2,
+            (bottomY + topY) / 2
+        );
+        ctx.rotate(-angle);
+
+        ctx.fillStyle = "#cbd5e1";
+        ctx.textAlign = "center";
+        ctx.font = "600 13px system-ui";
+
+        ctx.fillText(
+            `ramp length = ${p.rampLength.toFixed(2)} m`,
+            0,
+            -12
+        );
+
+        ctx.restore();
+
+        // Angle marker.
+        const angleRadius = 45;
+
+        ctx.strokeStyle = "#facc15";
+        ctx.lineWidth = 2;
+
+        ctx.beginPath();
+        ctx.arc(
+            leftX,
+            bottomY,
+            angleRadius,
+            -angle,
+            0
+        );
+        ctx.stroke();
+
+        ctx.fillStyle = "#facc15";
+        ctx.font = "600 14px system-ui";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            `${p.angleDeg.toFixed(0)}°`,
+            leftX + 53,
+            bottomY - 10
+        );
+
+        /*
+            Object position.
+
+            distanceAlongRamp is measured from the bottom of the ramp.
+        */
+
+        const maxDistance = p.rampLength;
+
+        const normalized = Math.max(
+            0,
+            Math.min(1, distanceAlongRamp / maxDistance)
+        );
+
+        const objectX =
+            leftX +
+            normalized * rampWidth -
+            Math.sin(angle) * 18;
+
+        const objectY =
+            bottomY -
+            normalized * rampHeight -
+            Math.cos(angle) * 18;
+
+        const boxSize = 36;
+
+        ctx.save();
+
+        ctx.translate(objectX, objectY);
+        ctx.rotate(-angle);
+
+        // Box.
+        ctx.fillStyle = "#38bdf8";
+        ctx.strokeStyle = "#e0f2fe";
+        ctx.lineWidth = 2;
+
+        roundedRect(
+            -boxSize / 2,
+            -boxSize / 2,
+            boxSize,
+            boxSize,
+            5
+        );
+
+        ctx.fill();
+        ctx.stroke();
+
+        // Object label.
+        ctx.fillStyle = "#082f49";
+        ctx.font = "700 13px system-ui";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("m", 0, 0);
+
+        ctx.restore();
+
+        if (showForcesInput.checked) {
+
+            // Unit vectors:
+            //
+            // Up the ramp = (cosθ, -sinθ)
+            // Down the ramp = (-cosθ, sinθ)
+            //
+            // Screen y is positive downwards.
+
+            const ux = Math.cos(angle);
+            const uy = -Math.sin(angle);
+
+            const normalX = Math.sin(angle);
+            const normalY = Math.cos(angle);
+
+            const forceOriginX = objectX;
+            const forceOriginY = objectY;
+
+            // Scale forces for display only.
+            const forceScale = 0.45;
+
+            // Applied pulling force: up the ramp.
+            drawArrow(
+                forceOriginX,
+                forceOriginY,
+                forceOriginX + ux * p.pullForce * forceScale,
+                forceOriginY + uy * p.pullForce * forceScale,
+                "#4ade80",
+                `pull ${p.pullForce.toFixed(1)} N`
+            );
+
+            // Gravity.
+            drawArrow(
+                forceOriginX,
+                forceOriginY,
+                forceOriginX,
+                forceOriginY + p.weight * forceScale,
+                "#f87171",
+                `mg ${p.weight.toFixed(1)} N`
+            );
+
+            // Normal force.
+            drawArrow(
+                forceOriginX,
+                forceOriginY,
+                forceOriginX + normalX * p.normal * forceScale,
+                forceOriginY - normalY * p.normal * forceScale,
+                "#38bdf8",
+                `N ${p.normal.toFixed(1)} N`
+            );
+
+            // Friction down the ramp.
+            if (p.frictionForce > 0.05) {
+                drawArrow(
+                    forceOriginX,
+                    forceOriginY,
+                    forceOriginX - ux * p.frictionForce * forceScale,
+                    forceOriginY - uy * p.frictionForce * forceScale,
+                    "#facc15",
+                    `friction ${p.frictionForce.toFixed(1)} N`
+                );
+            }
+        }
+
+        // Top/bottom labels.
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "600 13px system-ui";
+        ctx.textAlign = "left";
+        ctx.fillText("start", leftX - 5, bottomY + 25);
+
+        ctx.textAlign = "right";
+        ctx.fillText("same final height", rightX, topY - 18);
+
+        // Numerical acceleration explanation.
+        //
+        // The displayed pulling force assumes constant speed, so:
+        //
+        // acceleration = 0 m/s²
+        //
+        // If a force smaller than the displayed force were applied,
+        // the object would accelerate down the plane.
+        ctx.fillStyle = "#94a3b8";
+        ctx.font = "12px system-ui";
+        ctx.textAlign = "center";
+
+        ctx.fillText(
+            "Constant-speed pull: net force along ramp = 0 N",
+            width / 2,
+            height - 18
+        );
+    }
+
+    function startSimulation() {
+
+        if (running) {
+            running = false;
+            startButton.textContent = "Start motion";
+            statusEl.textContent =
+                "Paused. The force values remain calculated for constant-speed motion.";
+            return;
+        }
+
+        running = true;
+        startButton.textContent = "Pause";
+
+        const p = getPhysics();
+
+        if (distanceAlongRamp >= p.rampLength) {
+            distanceAlongRamp = 0;
+        }
+
+        lastTime = performance.now();
+
+        animationId = requestAnimationFrame(animate);
+
+        statusEl.textContent =
+            "Moving at constant speed. The pulling force balances gravity down the ramp and friction.";
+    }
+
+    function animate(timestamp) {
+
+        if (!running) {
+            return;
+        }
+
+        const p = getPhysics();
+
+        const dt = Math.min(
+            0.05,
+            Math.max(0, (timestamp - lastTime) / 1000)
+        );
+
+        lastTime = timestamp;
+
+        distanceAlongRamp += p.speed * dt;
+
+        if (distanceAlongRamp >= p.rampLength) {
+            distanceAlongRamp = p.rampLength;
+            running = false;
+            startButton.textContent = "Start motion";
+
+            statusEl.textContent =
+                "The object reached the same vertical height. Notice that the required force was lower, but the ramp distance was longer.";
+
+            draw();
+            return;
+        }
+
+        draw();
+
+        animationId = requestAnimationFrame(animate);
+    }
+
+    function resetSimulation() {
+
+        running = false;
+
+        if (animationId !== null) {
+            cancelAnimationFrame(animationId);
+            animationId = null;
+        }
+
+        distanceAlongRamp = 0;
+
+        startButton.textContent = "Start motion";
+
+        statusEl.textContent =
+            "Ready. The pulling force is calculated for constant-speed motion.";
+
+        updateReadouts();
+    }
+
+    /*
+        Every physics input immediately recalculates the results.
+    */
+
+    [
+        massInput,
+        angleInput,
+        frictionInput,
+        heightInput,
+        speedInput,
+        showForcesInput
+    ].forEach(input => {
+        input.addEventListener("input", () => {
+            updateReadouts();
+
+            // Keep the animation physically consistent if the ramp length changes.
+            const p = getPhysics();
+
+            if (distanceAlongRamp > p.rampLength) {
+                distanceAlongRamp = p.rampLength;
+            }
+        });
+    });
+
+    startButton.addEventListener("click", startSimulation);
+    resetButton.addEventListener("click", resetSimulation);
+
+    window.addEventListener("resize", resizeCanvas);
+
+    // Initial state.
+    resizeCanvas();
+    updateReadouts();
+
+})();
+</script>
+
+</body>
+</html>
